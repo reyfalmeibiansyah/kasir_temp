@@ -1,7 +1,7 @@
 @extends('layout.sidebar')
 
 @section('content')
-<div class="container py-4" style="margin-left: 130px;"> {{-- fix posisi konten dari sidebar --}}
+<div class="container py-4" style="margin-left: 130px;">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-3">
         </ol>
@@ -38,7 +38,7 @@
 
                 {{-- Kanan: Form Member & Bayar --}}
                 <div class="col-md-6">
-                    <form action="{{ route('petugas.pembelian.store') }}" method="POST">
+                    <form id="formPenjualan" method="GET">
                         @csrf
 
                         {{-- Hidden input data penting --}}
@@ -46,6 +46,9 @@
                         <input type="hidden" name="jumlah" value="{{ $jumlah }}">
                         <input type="hidden" name="harga" value="{{ $produk->price }}">
                         <input type="hidden" name="total_payment" value="{{ $total }}">
+
+                        {{-- Hidden input untuk customer_phone (diisi otomatis lewat JS) --}}
+                        <input type="hidden" name="customer_phone" id="hiddenCustomerPhone">
 
                         <div class="mb-3">
                             <label class="form-label">Member Status 
@@ -60,7 +63,7 @@
                         {{-- Input No. HP untuk member --}}
                         <div class="mb-3 {{ old('is_member') === 'member' ? '' : 'd-none' }}" id="phoneInput">
                             <label class="form-label">Nomor Telepon</label>
-                            <input type="text" name="customer_phone" class="form-control" placeholder="Masukkan No. HP" value="{{ old('customer_phone') }}">
+                            <input type="text" name="visible_phone" id="visiblePhone" class="form-control" placeholder="Masukkan No. HP" value="{{ old('customer_phone') }}">
                             @error('customer_phone')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -87,6 +90,9 @@
     document.addEventListener('DOMContentLoaded', function () {
         const statusSelect = document.getElementById('memberStatus');
         const phoneInput = document.getElementById('phoneInput');
+        const form = document.getElementById('formPenjualan');
+        const visiblePhone = document.getElementById('visiblePhone');
+        const hiddenPhone = document.getElementById('hiddenCustomerPhone');
 
         function togglePhoneInput() {
             if (statusSelect.value === 'member') {
@@ -98,6 +104,23 @@
 
         statusSelect.addEventListener('change', togglePhoneInput);
         togglePhoneInput(); // trigger saat halaman reload
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Salin nomor telepon dari visible ke hidden input
+            hiddenPhone.value = visiblePhone.value;
+
+            if (statusSelect.value === 'member') {
+                form.action = "{{ route('petugas.pembelian.member') }}";
+            } else {
+                form.action = "{{ route('petugas.pembelian.store') }}";
+                form.method = "POST";
+            }
+
+            form.submit();
+        });
     });
 </script>
+
 @endsection

@@ -45,7 +45,11 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     });
 
     // Pembelian
-    Route::get('/pembelian', [PembelianController::class, 'index'])->name('pembelian.index');
+    Route::get('/pembelian', [PembelianController::class, 'indexAdmin'])->name('pembelian.index');
+    Route::get('/pembelian/export', [PembelianController::class, 'export'])->name('pembelian.export');
+    Route::get('/pembelian/{id}', [PembelianController::class, 'show'])->name('pembelian.show');
+    
+    Route::get('/pembelian/{id}/download-pdf', [PembelianController::class, 'downloadPdf'])->name('pembelian.downloadPdf');
 });
 
 
@@ -57,7 +61,7 @@ Route::middleware(['petugas'])->prefix('petugas')->name('petugas.')->group(funct
     // Produk hanya bisa dilihat
     Route::get('/produks', [ProdukController::class, 'index'])->name('produks.index');
     Route::get('/produks/show/{id}', [ProdukController::class, 'show'])->name('produks.show');
-
+    
     // CRUD Pembelian
     Route::get('/pembelian', [PembelianController::class, 'index'])->name('pembelian.index');
     Route::get('/pembelian/create', [PembelianController::class, 'create'])->name('pembelian.create');
@@ -68,11 +72,18 @@ Route::middleware(['petugas'])->prefix('petugas')->name('petugas.')->group(funct
 
     // Simpan pembelian ke database
     Route::post('/pembelian/store', [PembelianController::class, 'store'])->name('pembelian.store');
+    Route::post('/pembelian/store-step2', [PembelianController::class, 'storeStep2'])->name('pembelian.storeStep2');
+
+    Route::get('/pembelian/member', [PembelianController::class, 'member'])->name('pembelian.member');
 
     Route::get('/pembelian/export', [PembelianController::class, 'export'])->name('pembelian.export');
+
+    // ✅ Tambahan route show pembelian
     Route::get('/pembelian/{id}', [PembelianController::class, 'show'])->name('pembelian.show');
+
     Route::get('/pembelian/{id}/download-pdf', [PembelianController::class, 'downloadPdf'])->name('pembelian.downloadPdf');
 });
+
 
 
 // 🌐 Route default (home)

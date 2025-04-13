@@ -1,87 +1,107 @@
 @extends('layout.sidebar')
+
 @section('content')
-<div class="page-wrapper">
-    <!-- ============================================================== -->
-    <!-- Bread crumb and right sidebar toggle -->
-    <!-- ============================================================== -->
-    <div class="page-breadcrumb">
-        <div class="row align-items-center">
-            <div class="col-6">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0 d-flex align-items-center">
-                      <li class="breadcrumb-item"><a href="index.html" class="link"><i class="mdi mdi-home-outline fs-4"></i></a></li>
-                      <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-                    </ol>
-                  </nav>
-                <h1 class="mb-0 fw-bold">Dashboard</h1> 
-            </div>
-        </div>
-    </div>
-    <!-- ============================================================== -->
-    <!-- End Bread crumb and right sidebar toggle -->
-    <!-- ============================================================== -->
-    <!-- ============================================================== -->
-    <!-- Container fluid  -->
-    <!-- ============================================================== -->
+<style>
+    .with-sidebar {
+        padding-left: 250px; /* Sesuaikan dengan lebar sidebar */
+    }
+
+    @media (max-width: 768px) {
+        .with-sidebar {
+            padding-left: 0;
+        }
+    }
+</style>
+
+<div class="with-sidebar py-4">
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card">
+        <div class="row gy-4">
+            <div class="col-12">
+                <h4 class="fw-semibold">Selamat Datang, Admin!</h4>
+            </div>
+
+            <!-- Grafik Statistik Penjualan -->
+            <div class="col-xl-8 col-lg-7 col-md-12">
+                <div class="card shadow-sm rounded-4">
                     <div class="card-body">
-                        <h4 class="card-title">Selamat Datang, petugas!</h4>
-                        <canvas id="salesChart"></canvas>
+                        <h5 class="card-title">Statistik Penjualan</h5>
+                        <canvas id="salesChart" height="220"></canvas>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-4">
-                <div class="card">
+
+            <!-- Grafik Pie Persentase Produk -->
+            <div class="col-xl-4 col-lg-5 col-md-12">
+                <div class="card shadow-sm rounded-4">
                     <div class="card-body">
                         <h5 class="card-title">Persentase Penjualan Produk</h5>
-                        <canvas id="productChart"></canvas>
+                        <canvas id="productChart" height="220"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const salesCtx = document.getElementById('salesChart').getContext('2d');
-        new Chart(salesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['08 February 2025', '09 February 2025', '10 February 2025', '11 February 2025', '12 February 2025', '13 February 2025', '14 February 2025'],
-                datasets: [{
-                    label: 'Jumlah Penjualan',
-                    data: [2, 12, 72, 35, 10, 30, 55],
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Data untuk Grafik Batang Statistik Penjualan (Jumlah Produk Terjual)
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    const salesData = @json($salesData);
+
+    new Chart(salesCtx, {
+        type: 'bar',
+        data: {
+            labels: salesData.dates,
+            datasets: [{
+                label: 'Jumlah Produk Terjual',
+                data: salesData.sales, // Menampilkan jumlah produk yang terjual
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value; // Menampilkan jumlah produk
+                        }
                     }
                 }
             }
-        });
-    
-        const productCtx = document.getElementById('productChart').getContext('2d');
-        new Chart(productCtx, {
-            type: 'pie',
-            data: {
-                labels: ['TV', 'HP', 'TWS', 'Botol Minum', 'Mesin Rumput', 'Gizi Seimbang', 'LMS - Jagoscript', 'Buku', 'Niki', 'Lockheed Skunk F-22 Raptor'],
-                datasets: [{
-                    data: [10, 15, 8, 12, 10, 7, 5, 8, 6, 19],
-                    backgroundColor: ['#ff9999','#ffcc66','#9966ff','#ff6699','#6699ff','#66cccc','#ff9966','#66cc66','#ffcc99','#99cccc']
-                }]
-            },
-            options: {
-                responsive: true
+        }
+    });
+
+    // Data untuk Grafik Pie Persentase Produk
+    const productCtx = document.getElementById('productChart').getContext('2d');
+    const produkLabels = @json(array_keys($produkPercentages));  // Gunakan PHP array_keys
+    const produkData = @json(array_values($produkPercentages));  // Gunakan PHP array_values
+
+    new Chart(productCtx, {
+        type: 'pie',
+        data: {
+            labels: produkLabels,
+            datasets: [{
+                data: produkData,
+                backgroundColor: [
+                    '#ff9999','#ffcc66','#9966ff','#ff6699','#6699ff',
+                    '#66cccc','#ff9966','#66cc66','#ffcc99','#99cccc'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
             }
-        });
-    </script>
+        }
+    });
+</script>
 @endsection

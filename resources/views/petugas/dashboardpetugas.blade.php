@@ -29,15 +29,15 @@
                         <div class="card text-center p-4 shadow" style="border-radius: 1rem;">
                             <h4 class="card-title mb-4">Selamat Datang, Petugas!</h4>
                             <div class="bg-light py-3 rounded" style="font-weight: 500;">
-                                <div class="mb-2 text-muted">Total Penjualan Hari Ini</div>
-                                <div style="font-size: 2.5rem; font-weight: bold; color: #000;">36</div>
-                                <div class="text-muted">Jumlah total penjualan yang terjadi hari ini.</div>
-                                <div class="mt-3 text-muted">Terakhir diperbarui: 05 Apr 2025 16:01</div>
+                                <div class="mb-2 text-muted">Jumlah Produk Terjual Hari Ini</div>
+                                <div style="font-size: 2.5rem; font-weight: bold; color: #000;">
+                                    {{ number_format($produkTerjualHariIni, 0, ',', '.') }} <!-- Menampilkan jumlah produk yang terjual hari ini -->
+                                </div>
+                                <div class="text-muted">Jumlah total produk yang terjual hari ini.</div>
+                                <div class="mt-3 text-muted">Terakhir diperbarui: {{ \Carbon\Carbon::now()->format('d M Y H:i') }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-    
-
 @endsection

@@ -21,4 +21,12 @@ class Produk extends Model
         'price',
         'stock',
     ];
+
+    // public function items() {
+    //     return $this->hasMany(Detail_Penjualan::class, 'id');
+    // }
+
+    // public function detailPenjualans() {
+    //     return $this->hasMany(Detail_Penjualan::class, 'id');
+    // }
 }

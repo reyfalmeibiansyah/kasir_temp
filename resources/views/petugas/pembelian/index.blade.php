@@ -47,7 +47,13 @@
                         <span class="ms-2">entri</span>
                     </div>
                     <div>
-                        <input type="text" class="form-control w-auto d-inline-block" placeholder="Cari">
+                        <form method="GET" action="{{ route('petugas.pembelian.index') }}" class="d-flex">
+                            <input type="text" name="search" class="form-control w-auto d-inline-block me-2" placeholder="Cari nama member..." value="{{ request('search') }}">
+                            <button type="submit" class="btn btn-primary btn-sm">Cari</button>
+                            @if(request('search'))
+                                <a href="{{ route('petugas.pembelian.index') }}" class="btn btn-secondary btn-sm ms-2">Reset</a>
+                            @endif
+                        </form>
                     </div>
                 </div>
 
@@ -63,19 +69,19 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @php $no = 1; @endphp
+                        @php $no = ($penjualans->currentPage() - 1) * $penjualans->perPage() + 1; @endphp
                         @forelse($penjualans as $penjualan)
                             <tr>
                                 <td>{{ $no++ }}</td>
-                                <td>{{ $penjualan->members->nama_member }}</td>
-                                <td>{{ \Carbon\Carbon::parse($penjualan->tanggal_penjualan)->format('Y-m-d') }}</td>
+                                <td>{{ optional($penjualan->members)->nama_member ?? 'Bukan Member' }}</td>
+                                <td>{{ \Carbon\Carbon::parse($penjualan->created_at)->timezone('Asia/Jakarta')->format('d-m-Y H:i') }}</td>
                                 <td>Rp. {{ number_format($penjualan->total_payment, 0, ',', '.') }}</td>
-                                <td>{{ $penjualan->members->nama_member ?? 'Petugas' }}</td>
+                                <td>{{ $penjualan->user->name ?? '-' }}</td>
                                 <td class="text-center">
-                                    <a href="#" class="btn btn-info btn-sm mb-1">
+                                    <a href="{{ route('petugas.pembelian.show', $penjualan->id) }}" class="btn btn-info btn-sm mb-1">
                                         <i class="mdi mdi-eye"></i> Lihat
-                                    </a>                                    
-                                    <a href="#" class="btn btn-success btn-sm">
+                                    </a>                                                                  
+                                    <a href="{{ route('petugas.pembelian.downloadPdf', $penjualan->id) }}" class="btn btn-success btn-sm">
                                         <i class="mdi mdi-download"></i> Unduh PDF
                                     </a>
                                 </td>
@@ -87,6 +93,17 @@
                         @endforelse
                     </tbody>
                 </table>
+
+                {{-- Pagination --}}
+                <<div class="mt-4 d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="text-muted small">
+                        Menampilkan {{ $penjualans->firstItem() }} sampai {{ $penjualans->lastItem() }} dari total {{ $penjualans->total() }} entri
+                    </div>
+                    <div class="mt-2 mt-md-0">
+                        {{ $penjualans->withQueryString()->onEachSide(1)->links('vendor.pagination.bootstrap-5') }}
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>

@@ -19,8 +19,8 @@ class Penjualan extends Model
         'total_payment',
         'point_used',
         'change',
-        'produk_id',    // pastikan field ini juga diisi
-        'qty',          // kalau ada di form
+        // 'produk_id',    // pastikan field ini juga diisi
+        // 'qty',          // kalau ada di form
     ];
 
     // Relasi ke Member
@@ -38,7 +38,7 @@ class Penjualan extends Model
     // Relasi ke detail penjualan
     public function detailPenjualan()
     {
-        return $this->hasMany(\App\Models\Detail_Penjualan::class, 'penjualan_id');
+        return $this->hasMany(Detail_Penjualan::class, 'penjualan_id');
     }
 
     // Relasi ke Produk

@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('invoice_number');
             $table->bigInteger('user_id');
-            $table->bigInteger('member_id');
-            $table->string('customer_phone');
+            $table->bigInteger('member_id')->nullable();
+            $table->string('customer_phone')->nullable();
             $table->enum('is_member', ['bukan_member', 'member']);
             $table->decimal('total_payment');
-            $table->integer('point_used');
-            $table->decimal('change');
+            $table->integer('point_used')->default(0);
+            $table->decimal('change')->default(0);
             $table->timestamps();
         });
     }
