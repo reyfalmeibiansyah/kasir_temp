@@ -1,7 +1,7 @@
 @extends('layout.sidebar')
 
 @section('content')
-<div class="px-4 py-4" style="max-width: 900px; margin-left: 280px;"> {{-- Lebih ramping dan offset dari sidebar --}}
+<div class="px-4 py-4" style="max-width: 900px; margin-left: 280px;">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-3">
             <li class="breadcrumb-item">Pembayaran</li>
@@ -32,14 +32,20 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $totalAsli = 0;
+                @endphp
                 @foreach($penjualan->detailPenjualan as $item)
+                @php
+                    $totalAsli += $item->sub_total;
+                @endphp
                 <tr class="border-b border-gray-200">
                     <td class="py-2">{{ optional($item->produk)->title }}</td>
                     <td class="py-2">Rp. {{ number_format(optional($item->produk)->price, 0, ',', '.') }}</td>
                     <td class="py-2">{{ optional($item)->qty }}</td>
                     <td class="py-2">Rp. {{ number_format($item->sub_total, 0, ',', '.') }}</td>
                 </tr>
-            @endforeach            
+                @endforeach
             </tbody>
         </table>
 
@@ -57,12 +63,13 @@
                 <div class="fw-bold">Rp. {{ number_format($penjualan->change, 0, ',', '.') }}</div>
             </div>
         </div>
-        
+
         <div class="d-flex justify-content-end mt-4">
-            <div class="bg-dark text-white rounded-4 p-4 text-end" style="min-width: 200px;">
-                <div class="fw-semibold small">TOTAL</div>
+            <div class="bg-dark text-white rounded-4 p-4 text-end" style="min-width: 240px;">
+                <div class="fw-semibold small">TOTAL PEMBAYARAN</div>
                 <h4 class="fw-bold text-white">Rp. {{ number_format($penjualan->total_payment, 0, ',', '.') }}</h4>
             </div>
         </div>
+    </div>
 </div>
 @endsection

@@ -35,7 +35,7 @@
 
                         <div class="text-end">
                             <p class="mb-1"><strong>Total Harga:</strong> Rp {{ number_format($total_payment, 0, ',', '.') }}</p>
-                            <p class="mb-0"><strong>Total Bayar:</strong> Rp {{ number_format($total_payment, 0, ',', '.') }}</p>
+                            <p class="mb-0"><strong>Total Bayar:</strong> Rp <span id="total_bayar_display">{{ number_format($total_payment, 0, ',', '.') }}</span></p>
                         </div>
                     </div>
                 </div>
@@ -44,8 +44,9 @@
                 <div class="col-md-6">
                     <form action="{{ route('petugas.pembelian.storeStep2') }}" method="POST">
                         @csrf
-                        <input type="hidden" name="total_payment" value="{{ $total_payment }}">
+                        <input type="hidden" name="total_payment" id="total_payment_input" value="{{ $total_payment }}">
                         <input type="hidden" name="customer_phone" value="{{ request('customer_phone') }}">
+                        <input type="hidden" name="potongan_poin" id="potongan_poin" value="0">
 
                         <h5 class="fw-bold mb-3">Data Member</h5>
 
@@ -84,4 +85,36 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const checkbox = document.getElementById('point_used');
+    const totalBayarDisplay = document.getElementById('total_bayar_display');
+    const totalPaymentInput = document.getElementById('total_payment_input');
+    const potonganInput = document.getElementById('potongan_poin');
+    const poinMember = {{ $member->points ?? 0 }};
+    const totalPayment = {{ $total_payment }};
+
+    checkbox?.addEventListener('change', function () {
+        let potongan = poinMember;
+        let totalSetelahPotongan = totalPayment - potongan;
+
+        // Jika potongan melebihi total pembayaran
+        if (totalSetelahPotongan < 0) {
+            potongan = totalPayment;
+            totalSetelahPotongan = 0;
+        }
+
+        if (this.checked) {
+            totalBayarDisplay.textContent = new Intl.NumberFormat('id-ID').format(totalSetelahPotongan);
+            potonganInput.value = potongan;
+            totalPaymentInput.value = totalSetelahPotongan;
+        } else {
+            totalBayarDisplay.textContent = new Intl.NumberFormat('id-ID').format(totalPayment);
+            potonganInput.value = 0;
+            totalPaymentInput.value = totalPayment;
+        }
+    });
+});
+</script>
 @endsection

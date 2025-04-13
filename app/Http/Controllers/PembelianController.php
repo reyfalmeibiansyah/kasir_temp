@@ -55,133 +55,157 @@ class PembelianController extends Controller
     }
 
     public function store(Request $request)
-    {
-        // Validasi awal
-        $rules = [
-            'produk_id'      => 'required|exists:produks,id',
-            'jumlah'         => 'required|integer|min:1',
-            'total_payment'  => 'required|numeric',
-            'is_member'      => 'required|in:bukan_member,member',
-        ];
+{
+    // Validasi awal
+    $rules = [
+        'produk_id'      => 'required|exists:produks,id',
+        'jumlah'         => 'required|integer|min:1',
+        'total_payment'  => 'required|numeric',
+        'is_member'      => 'required|in:bukan_member,member',
+    ];
 
-        // Validasi tambahan jika member
-        if ($request->is_member === 'member') {
-            $rules['customer_phone'] = 'required|string|max:20|exists:members,nomor_telepon';
-        }
-
-        $request->validate($rules);
-
-        $produk = Produk::findOrFail($request->produk_id);
-
-        if ($produk->stock < $request->jumlah) {
-            return back()->withInput()->with('error', 'Stok produk tidak mencukupi. Stok tersedia: ' . $produk->stock);
-        }
-
-        // Proses data member jika dipilih
-        $member = null;
-        if ($request->is_member === 'member') {
-            $member = Member::where('nomor_telepon', $request->customer_phone)->first();
-            
-            if (!$member) {
-                return back()->withInput()->with('error', 'Member dengan nomor telepon tersebut tidak ditemukan.');
-            }
-        } else {
-            // Jika bukan member, isi customer_phone default
-            $request->merge(['customer_phone' => '-']);
-        }
-
-        // Generate nomor invoice unik
-        $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(uniqid());
-
-        // Hitung total bayar
-        $total = $request->total_payment;
-
-        $penjualan = Penjualan::create([
-            'member_id'         => $member ? $member->id : null,
-            'invoice_number'    => $invoiceNumber,
-            'tanggal_penjualan' => now(),
-            'total_payment'     => $total,
-            'user_id'           => Auth::id(),
-            'point_used'        => 0,
-            'change'            => 0,
-            'customer_phone'    => $request->customer_phone,
-        ]);
-
-        // Simpan ke tabel detail_penjualans
-        $penjualan->detailPenjualan()->create([
-            'produk_id' => $produk->id,
-            'qty'       => $request->jumlah,
-            'price'     => $produk->price,
-            'sub_total' => $produk->price * $request->jumlah
-        ]);
-
-        // Update stok
-        $produk->decrement('stock', $request->jumlah);
-
-        return redirect()->route('petugas.pembelian.struk', $penjualan->id);
+    // Validasi tambahan jika member
+    if ($request->is_member === 'member') {
+        $rules['customer_phone'] = 'required|string|max:20|exists:members,nomor_telepon';
     }
 
+    $request->validate($rules);
+
+    $produk = Produk::findOrFail($request->produk_id);
+
+    if ($produk->stock < $request->jumlah) {
+        return back()->withInput()->with('error', 'Stok produk tidak mencukupi. Stok tersedia: ' . $produk->stock);
+    }
+
+    // Proses data member jika dipilih
+    $member = null;
+    if ($request->is_member === 'member') {
+        $member = Member::where('nomor_telepon', $request->customer_phone)->first();
+        
+        if (!$member) {
+            return back()->withInput()->with('error', 'Member dengan nomor telepon tersebut tidak ditemukan.');
+        }
+    } else {
+        // Jika bukan member, isi customer_phone default
+        $request->merge(['customer_phone' => '-']);
+    }
+
+    // Generate nomor invoice unik
+    $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(uniqid());
+
+    // Hitung total harga barang
+    $totalHargaBarang = $produk->price * $request->jumlah;
+
+    // Total uang dibayar dari input
+    $totalDibayar = $request->total_payment;
+
+    // Hitung uang kembalian
+    $uangKembalian = max(0, $totalDibayar - $totalHargaBarang);
+
+    // Simpan ke tabel Penjualan
+    $penjualan = Penjualan::create([
+        'member_id'         => $member ? $member->id : null,
+        'invoice_number'    => $invoiceNumber,
+        'tanggal_penjualan' => now(),
+        'total_payment'     => $totalDibayar,
+        'user_id'           => Auth::id(),
+        'point_used'        => 0,
+        'change'            => $uangKembalian,
+        'customer_phone'    => $request->customer_phone,
+    ]);
+
+    // Simpan ke tabel detail_penjualans
+    $penjualan->detailPenjualan()->create([
+        'produk_id' => $produk->id,
+        'qty'       => $request->jumlah,
+        'price'     => $produk->price,
+        'sub_total' => $produk->price * $request->jumlah
+    ]);
+
+    // Update stok
+    $produk->decrement('stock', $request->jumlah);
+
+    return redirect()->route('petugas.pembelian.struk', $penjualan->id);
+}
+
     
-    public function storeStep2(Request $request)
+public function storeStep2(Request $request)
 {
-    // Validasi input
     $request->validate([
         'nama_member'   => 'required|string|max:255',
         'total_payment' => 'required|numeric',
         'point_used'    => 'nullable|in:1',
     ]);
 
+    // Cari atau buat member baru
     $member = Member::where('nama_member', $request->nama_member)->first();
 
     if (!$member) {
         $member = Member::create([
             'nama_member'    => $request->nama_member,
-            'nomor_telepon'  => $request->customer_phone ?? '-', // ambil dari input form jika ada
+            'nomor_telepon'  => $request->customer_phone ?? '-',
             'points'         => 0,
-        ]);        
+        ]);
     }
-    
 
-    // Proses penggunaan poin (jika ada)
-    $totalPayment = $request->total_payment;
+    // Hitung total belanja dari session
+    $totalBelanja = 0;
+    if (session()->has('selected_products')) {
+        foreach (session('selected_products') as $item) {
+            $totalBelanja += $item['sub_total'];
+        }
+    }
+
     $pointUsed = 0;
+    $potongan = 0;
+    $totalPayment = $totalBelanja;
 
+    // Proses penggunaan poin jika dicentang dan member memiliki poin
     if ($request->has('point_used') && $member->points > 0) {
-        $pointValue = 1000; // Tentukan nilai 1 poin
+        $pointValue = 1000; // 1 poin = Rp 1000
         $maxPotongan = $member->points * $pointValue;
 
-        if ($maxPotongan > $totalPayment) {
-            $pointUsed = ceil($totalPayment / $pointValue);
+        // Jika poin mencukupi untuk seluruh transaksi
+        if ($maxPotongan >= $totalBelanja) {
+            $pointUsed = ceil($totalBelanja / $pointValue);
+            $potongan = $pointUsed * $pointValue;
             $totalPayment = 0;
-        } else {
+        } 
+        // Jika poin tidak mencukupi untuk seluruh transaksi
+        else {
             $pointUsed = $member->points;
-            $totalPayment -= $maxPotongan;
+            $potongan = $maxPotongan;
+            $totalPayment = $totalBelanja - $potongan;
         }
 
-        // Kurangi poin dari member
+        // Kurangi poin member
         $member->points -= $pointUsed;
         $member->save();
     }
 
+    // Ambil jumlah uang dibayar dari input
+    $totalDibayar = $request->total_payment;
 
-    // Simpan data penjualan
+    // Hitung uang kembalian
+    $uangKembalian = max(0, $totalDibayar - $totalPayment);
+
+    // Buat record penjualan
     $penjualan = Penjualan::create([
         'invoice_number'    => 'INV-' . now()->format('Ymd') . '-' . strtoupper(uniqid()),
         'user_id'           => Auth::id(),
         'member_id'         => $member->id,
         'customer_phone'    => $member->nomor_telepon,
         'is_member'         => true,
-        'total_payment'     => $totalPayment,
+        'total_payment'     => $totalDibayar,
         'point_used'        => $pointUsed,
-        'change'            => 0,
+        'change'            => $uangKembalian,
         'tanggal_penjualan' => now()->timezone('Asia/Jakarta'),
     ]);
 
-    // Simpan detail produk dari session
+    // Simpan detail penjualan
     if (session()->has('selected_products')) {
         foreach (session('selected_products') as $item) {
             $produk = Produk::where('title', $item['nama_produk'])->first();
-
             if ($produk) {
                 $penjualan->detailPenjualan()->create([
                     'produk_id' => $produk->id,
@@ -189,23 +213,24 @@ class PembelianController extends Controller
                     'price'     => $item['harga_produk'],
                     'sub_total' => $item['sub_total']
                 ]);
-
-                // Update stok produk
                 $produk->decrement('stock', $item['qty']);
             }
         }
     }
 
-    // Tambahkan poin baru ke member setelah transaksi
-    $poin_baru = floor($totalPayment / 100);  // 1 poin per 100 rupiah
-    $member->points += $poin_baru;
-    $member->save();
+    // Tambahkan poin baru jika ada pembayaran
+    if ($totalPayment > 0) {
+        $poin_baru = floor($totalPayment / 100); // 1 poin per Rp 100
+        $member->points += $poin_baru;
+        $member->save();
+    }
 
-    // Hapus session produk yang dipilih
+    // Hapus session
     session()->forget(['selected_products', 'total_payment']);
 
     return redirect()->route('petugas.pembelian.struk', $penjualan->id);
 }
+    
 
 
     public function export()
@@ -259,18 +284,15 @@ public function downloadPdf($id)
 
     public function member(Request $request)
     {
-        // Validasi produk yang dipilih
         $produk = Produk::find($request->produk_id);
         if (!$produk) {
             return back()->with('error', 'Produk tidak ditemukan.');
         }
     
-        // Validasi jumlah produk
         if ($produk->stock < $request->jumlah) {
             return back()->with('error', 'Stok produk tidak mencukupi.');
         }
     
-        // Simpan data produk ke dalam session
         session([
             'selected_products' => [
                 [
@@ -283,18 +305,12 @@ public function downloadPdf($id)
             'total_payment' => $request->total_payment
         ]);
     
-        // Ambil data member dari input
-        $nama_member = $request->input('nama_member');
-        $member = Member::where('nama_member', $nama_member)->first();
+        // Ambil data member dari input nomor telepon
+        $customerPhone = $request->input('customer_phone');
+        $member = Member::where('nomor_telepon', $customerPhone)->first();
     
-        // Cek apakah member lama atau member baru
-        if ($member) {
-            // Member lama, ambil point-nya
-            $point = $member->points;
-        } else {
-            // Member baru, point-nya 0
-            $point = 0;
-        }
+        // Cek poin jika member ditemukan
+        $point = $member ? $member->points : 0;
     
         return view('petugas.pembelian.member', [
             'selectedProducts' => session('selected_products'),
@@ -302,5 +318,6 @@ public function downloadPdf($id)
             'member' => $member,
             'point' => $point
         ]);
-    }    
+    }
+      
 }
